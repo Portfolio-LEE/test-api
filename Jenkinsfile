@@ -49,6 +49,18 @@ pipeline {
         }
 
 
+        stage('DEBUG - list gitops repo') {
+            steps {
+                sh """
+                echo "[DEBUG] GitOps Repo Structure"
+                ls -R gitops-temp
+                echo "[DEBUG] Searching for values.yaml"
+                find gitops-temp -name values.yaml
+                """
+            }
+        }
+
+
         stage('Update GitOps Repo (values.yaml)') {
             steps {
                 sh """
