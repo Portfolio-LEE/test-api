@@ -5,7 +5,6 @@ pipeline {
         DOCKERHUB_USER = "boxty123"
         DOCKERHUB_REPO = "traffic-test"
 
-        # GitOps Repo (public repo라 clone은 인증 필요 없음 / push는 인증 필요)
         GITOPS_REPO_HTTPS = "https://github.com/Portfolio-LEE/gitops.git"
         GITOPS_VALUES_PATH = "gitops/apps/test-api/values.yaml"
     }
@@ -55,7 +54,7 @@ pipeline {
 
                 // GitHub Token(GIT_ACCOUNT) 사용
                 withCredentials([usernamePassword(
-                    credentialsId: 'GIT_ACCOUNT',    // 너가 설정한 GitHub Token
+                    credentialsId: 'GIT_ACCOUNT',  
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_PASS'
                 )]) {
