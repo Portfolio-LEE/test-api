@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_USER = "boxty123"
         DOCKERHUB_REPO = "traffic-test"
 
-        GITOPS_REPO = "https://github.com/Portfolio-LEE/gitops-repo.git"
+        GITOPS_REPO_URL = "https://github.com/Portfolio-LEE/gitops-repo.git"
         VALUES_PATH = "apps/test-api/values.yaml"
     }
 
@@ -59,20 +59,25 @@ pipeline {
                     sh """
                     echo "[4] Clone GitOps Repo"
                     rm -rf gitops-temp
-                    git clone ${GITOPS_REPO} gitops-temp
+                    git clone ${GITOPS_REPO_URL} gitops-temp
 
-                    echo "[5] Update values.yaml -> tag: ${TAG}"
+                    echo "[5] Update values.yaml → tag: ${TAG}"
                     sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/${VALUES_PATH}
 
-                    echo "[6] Commit & Push"
                     cd gitops-temp
+
+                    echo "[6] Commit changes"
                     git config user.email "jenkins@test.com"
                     git config user.name "jenkins"
 
                     git add ${VALUES_PATH}
                     git commit -m "Update test-api image tag to ${TAG}" || echo "No changes"
 
-                    git push https://${GIT_USER}:${GIT_PASS}@github.com/Portfolio-LEE/gitops-repo.git main
+                    echo "[7] Push with Basic Auth header"
+                    AUTH=\$(echo -n "${GIT_USER}:${GIT_PASS}" | base64)
+
+                    git -c http.extraheader="AUTHORIZATION: Basic \$AUTH" \
+                        push ${GITOPS_REPO_URL} main
                     """
                 }
             }
