@@ -5,8 +5,8 @@ pipeline {
         DOCKERHUB_USER = "boxty123"
         DOCKERHUB_REPO = "traffic-test"
 
-        GITOPS_REPO_HTTPS = "https://github.com/Portfolio-LEE/gitops.git"
-        GITOPS_VALUES_PATH = "gitops/apps/test-api/values.yaml"
+        GITOPS_REPO = "https://github.com/Portfolio-LEE/gitops-repo.git"
+        VALUES_PATH = "apps/test-api/values.yaml"
     }
 
     stages {
@@ -37,7 +37,6 @@ pipeline {
                     usernameVariable: 'DH_USER',
                     passwordVariable: 'DH_PASS'
                 )]) {
-
                     sh """
                     echo "[2] DockerHub Login"
                     echo "${DH_PASS}" | docker login -u "${DH_USER}" --password-stdin
@@ -49,7 +48,6 @@ pipeline {
             }
         }
 
-
         stage('Update GitOps Repo (values.yaml)') {
             steps {
                 withCredentials([usernamePassword(
@@ -57,33 +55,33 @@ pipeline {
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_PASS'
                 )]) {
-        
+
                     sh """
                     echo "[4] Clone GitOps Repo"
                     rm -rf gitops-temp
-                    git clone https://github.com/Portfolio-LEE/gitops.git gitops-temp
-        
-                    echo "[5] Update values.yaml with new TAG: ${TAG}"
-                    # 정확한 경로 (gitops-temp/gitops/apps/test-api/)
-                    sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/gitops/apps/test-api/values.yaml
-        
+                    git clone ${GITOPS_REPO} gitops-temp
+
+                    echo "[5] Update values.yaml -> tag: ${TAG}"
+                    sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/${VALUES_PATH}
+
+                    echo "[6] Commit & Push"
                     cd gitops-temp
                     git config user.email "jenkins@test.com"
                     git config user.name "jenkins"
-        
-                    git add gitops/apps/test-api/values.yaml
-                    git commit -m "Update test-api image tag to ${TAG}"
-                    git push https://${GIT_USER}:${GIT_PASS}@github.com/Portfolio-LEE/gitops.git main
+
+                    git add ${VALUES_PATH}
+                    git commit -m "Update test-api image tag to ${TAG}" || echo "No changes"
+
+                    git push https://${GIT_USER}:${GIT_PASS}@github.com/Portfolio-LEE/gitops-repo.git main
                     """
                 }
             }
         }
-
     }
 
     post {
         success {
-            echo "[SUCCESS] DockerHub Push + GitOps Repo Update + ArgoCD AutoSync 완료!"
+            echo "[SUCCESS] CI/CD + GitOps 자동 배포 완료!"
         }
         failure {
             echo "[FAILED] 빌드 또는 배포 실패"
