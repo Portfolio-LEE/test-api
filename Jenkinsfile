@@ -5,8 +5,9 @@ pipeline {
         DOCKERHUB_USER = "boxty123"
         DOCKERHUB_REPO = "traffic-test"
 
+        # GitOps Repo (public repo라 clone은 인증 필요 없음 / push는 인증 필요)
         GITOPS_REPO_HTTPS = "https://github.com/Portfolio-LEE/gitops.git"
-        GITOPS_PATH = "apps/test-api/values.yaml"
+        GITOPS_VALUES_PATH = "gitops/apps/test-api/values.yaml"
     }
 
     stages {
@@ -37,6 +38,7 @@ pipeline {
                     usernameVariable: 'DH_USER',
                     passwordVariable: 'DH_PASS'
                 )]) {
+
                     sh """
                     echo "[2] DockerHub Login"
                     echo "${DH_PASS}" | docker login -u "${DH_USER}" --password-stdin
@@ -48,41 +50,40 @@ pipeline {
             }
         }
 
-
-        stage('DEBUG - list gitops repo') {
-            steps {
-                sh """
-                echo "[DEBUG] GitOps Repo Structure"
-                ls -R gitops-temp
-                echo "[DEBUG] Searching for values.yaml"
-                find gitops-temp -name values.yaml
-                """
-            }
-        }
-
-
-
         stage('Update GitOps Repo (values.yaml)') {
             steps {
-                sh """
-                echo "[4] Clone GitOps Repo (HTTPS)"
-                rm -rf gitops-temp
-                git clone https://github.com/Portfolio-LEE/gitops.git gitops-temp
-        
-                echo "[5] Update values.yaml with new TAG (${TAG})"
-                sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/gitops/apps/test-api/values.yaml
-        
-                cd gitops-temp
-                git config user.email "jenkins@test.com"
-                git config user.name "jenkins"
-        
-                git add gitops/apps/test-api/values.yaml
-                git commit -m "Update test-api image tag to ${TAG}"
-                git push origin main
-                """
+
+                // GitHub Token(GIT_ACCOUNT) 사용
+                withCredentials([usernamePassword(
+                    credentialsId: 'GIT_ACCOUNT',    // 너가 설정한 GitHub Token
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_PASS'
+                )]) {
+
+                    sh """
+                    echo "[4] Clone GitOps Repo (HTTPS)"
+                    rm -rf gitops-temp
+                    git clone ${GITOPS_REPO_HTTPS} gitops-temp
+
+                    echo "[5] Update values.yaml with new TAG: ${TAG}"
+
+                    # 실제 경로: gitops-temp/gitops/apps/test-api/values.yaml
+                    sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/${GITOPS_VALUES_PATH}
+
+                    cd gitops-temp
+
+                    git config user.email "jenkins@test.com"
+                    git config user.name "jenkins"
+
+                    git add ${GITOPS_VALUES_PATH}
+                    git commit -m "Update test-api image tag to ${TAG}"
+
+                    echo "[6] Push GitOps Repo using GitHub Token"
+                    git push https://${GIT_USER}:${GIT_PASS}@github.com/Portfolio-LEE/gitops.git main
+                    """
+                }
             }
         }
-
 
     }
 
