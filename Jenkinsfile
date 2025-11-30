@@ -49,35 +49,30 @@ pipeline {
             }
         }
 
+
         stage('Update GitOps Repo (values.yaml)') {
             steps {
-
-                // GitHub Token(GIT_ACCOUNT) 사용
                 withCredentials([usernamePassword(
-                    credentialsId: 'GIT_ACCOUNT',  
+                    credentialsId: 'GIT_ACCOUNT',
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_PASS'
                 )]) {
-
+        
                     sh """
-                    echo "[4] Clone GitOps Repo (HTTPS)"
+                    echo "[4] Clone GitOps Repo"
                     rm -rf gitops-temp
-                    git clone ${GITOPS_REPO_HTTPS} gitops-temp
-
+                    git clone https://github.com/Portfolio-LEE/gitops.git gitops-temp
+        
                     echo "[5] Update values.yaml with new TAG: ${TAG}"
-
-                    # 실제 경로: gitops-temp/gitops/apps/test-api/values.yaml
-                    sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/${GITOPS_VALUES_PATH}
-
+                    # 정확한 경로 (gitops-temp/gitops/apps/test-api/)
+                    sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/gitops/apps/test-api/values.yaml
+        
                     cd gitops-temp
-
                     git config user.email "jenkins@test.com"
                     git config user.name "jenkins"
-
-                    git add ${GITOPS_VALUES_PATH}
+        
+                    git add gitops/apps/test-api/values.yaml
                     git commit -m "Update test-api image tag to ${TAG}"
-
-                    echo "[6] Push GitOps Repo using GitHub Token"
                     git push https://${GIT_USER}:${GIT_PASS}@github.com/Portfolio-LEE/gitops.git main
                     """
                 }
