@@ -5,7 +5,6 @@ pipeline {
         DOCKERHUB_USER = "boxty123"
         DOCKERHUB_REPO = "traffic-test"
 
-        # GitOps Repo
         GITOPS_REPO_HTTPS = "https://github.com/Portfolio-LEE/gitops.git"
         GITOPS_PATH = "apps/test-api/values.yaml"
     }
@@ -21,7 +20,6 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    # Unix timestamp를 태그로 사용
                     TAG = sh(script: "date +%s", returnStdout: true).trim()
 
                     sh """
