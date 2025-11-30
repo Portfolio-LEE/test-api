@@ -48,28 +48,30 @@ pipeline {
             }
         }
 
+
         stage('Update GitOps Repo (values.yaml)') {
             steps {
                 sh """
                 echo "[4] Clone GitOps Repo (HTTPS)"
                 rm -rf gitops-temp
-                git clone ${GITOPS_REPO_HTTPS} gitops-temp
-
-                cd gitops-temp
-
+                git clone https://github.com/Portfolio-LEE/gitops.git gitops-temp
+        
                 echo "[5] Update values.yaml with new TAG (${TAG})"
-                sed -i "s/tag:.*/tag: \\"${TAG}\\"/" ${GITOPS_PATH}
-
-                echo "[6] Commit & Push changes"
+                sed -i "s/tag:.*/tag: \\"${TAG}\\"/" gitops-temp/apps/test-api/values.yaml
+        
+                cd gitops-temp
                 git config user.email "jenkins@test.com"
                 git config user.name "jenkins"
-
-                git add ${GITOPS_PATH}
+        
+                git add apps/test-api/values.yaml
                 git commit -m "Update test-api image tag to ${TAG}"
+        
+                echo "[6] Push GitOps Repo"
                 git push origin main
                 """
             }
         }
+
     }
 
     post {
