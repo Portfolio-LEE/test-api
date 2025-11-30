@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_USER = "boxty123"
         DOCKERHUB_REPO = "traffic-test"
 
-        GITOPS_REPO = "git@github.com:Portfolio-LEE/gitops.git"
+        GITOPS_REPO_HTTPS = "https://github.com/Portfolio-LEE/gitops.git"
         GITOPS_PATH = "apps/test-api/values.yaml"
     }
 
@@ -50,32 +50,24 @@ pipeline {
 
         stage('Update GitOps Repo (values.yaml)') {
             steps {
-                withCredentials([sshUserPrivateKey(
-                    credentialsId: 'gitops-ssh',       // SSH key for GitOps repo
-                    keyFileVariable: 'SSH_KEY',
-                    usernameVariable: 'SSH_USER'
-                )]) {
-
+                script {
                     sh """
-                    echo "[4] Clone GitOps Repo"
+                    echo "[4] Clone GitOps Repo (HTTPS)"
                     rm -rf gitops-temp
-
-                    GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no" \
-                    git clone ${GITOPS_REPO} gitops-temp
+                    git clone ${GITOPS_REPO_HTTPS} gitops-temp
 
                     cd gitops-temp
 
-                    echo "[5] Update values.yaml with new TAG"
+                    echo "[5] Update image tag in values.yaml"
                     sed -i 's/tag:.*/tag: "${TAG}"/' ${GITOPS_PATH}
 
                     git config user.email "jenkins@test.com"
                     git config user.name "jenkins"
 
                     git add ${GITOPS_PATH}
-                    git commit -m "Update test-api image tag to ${TAG}"
+                    git commit -m "Update image tag to ${TAG}"
 
-                    echo "[6] Push Update to GitOps Repo"
-                    GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no" \
+                    echo "[6] Push changes to GitOps Repo"
                     git push origin main
                     """
                 }
@@ -85,7 +77,7 @@ pipeline {
 
     post {
         success {
-            echo "[SUCCESS] DockerHub Push + GitOps Sync 자동배포 완료!"
+            echo "[SUCCESS] 배포 성공 — DockerHub Push + GitOps Repo 업데이트 완료!"
         }
         failure {
             echo "[FAILED] 빌드 또는 배포 실패"
